@@ -1,0 +1,2846 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>抽烟危害模拟器 | Smoking Hazard Simulator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0d0d0d;
+            --bg-secondary: #1a1a1a;
+            --bg-tertiary: #262626;
+            --bg-hover: #2a2a2a;
+            --text-primary: #e0e0e0;
+            --text-secondary: #808080;
+            --text-muted: #555555;
+            --accent-danger: #8b0000;
+            --accent-danger-light: #a52a2a;
+            --accent-warning: #cc4400;
+            --accent-health: #2d5a27;
+            --accent-info: #4a5568;
+            --border-subtle: #333333;
+            --border-strong: #444444;
+            --glow-danger: rgba(139, 0, 0, 0.4);
+            --glow-warning: rgba(204, 68, 0, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity: 0.03;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .warning-banner {
+            background: linear-gradient(90deg, var(--accent-danger), #660000);
+            padding: 12px 24px;
+            text-align: center;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.1rem;
+            letter-spacing: 3px;
+            animation: pulse-warning 2s infinite;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .warning-banner::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes pulse-warning {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.85; }
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .header {
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            fill: var(--accent-danger);
+        }
+
+        .logo-text {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.8rem;
+            letter-spacing: 2px;
+            color: var(--text-primary);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .country-selector {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            padding: 10px 16px;
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 0.9rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 150px;
+        }
+
+        .country-selector:hover {
+            border-color: var(--border-strong);
+            background: var(--bg-tertiary);
+        }
+
+        .country-selector:focus {
+            outline: none;
+            border-color: var(--accent-danger);
+            box-shadow: 0 0 0 2px var(--glow-danger);
+        }
+
+        .btn {
+            padding: 10px 20px;
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-weight: 500;
+            font-size: 0.9rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-danger {
+            background: var(--accent-danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: var(--accent-danger-light);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-hover);
+            border-color: var(--border-strong);
+        }
+
+        .btn-success {
+            background: var(--accent-health);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #3d7a37;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 320px 1fr 320px;
+            gap: 24px;
+            padding: 24px 0;
+            min-height: calc(100vh - 250px);
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr 1fr;
+            }
+            .social-panel {
+                grid-column: span 2;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            .social-panel {
+                grid-column: span 1;
+            }
+        }
+
+        .panel {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-title svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        .panel-content {
+            padding: 20px;
+        }
+
+        .health-panel {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .health-panel .panel-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .lung-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1;
+            max-width: 260px;
+            margin: 0 auto;
+        }
+
+        .lung-svg {
+            width: 100%;
+            height: 100%;
+            transition: all 0.5s;
+        }
+
+        .lung-label {
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .health-stat {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .health-stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .health-stat-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .health-stat-value {
+            font-family: 'IBM Plex Mono', monospace;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: color 0.3s;
+        }
+
+        .health-stat-value.critical {
+            color: var(--accent-danger);
+            animation: blink 1s infinite;
+        }
+
+        .health-stat-value.warning {
+            color: var(--accent-warning);
+        }
+
+        .health-stat-value.good {
+            color: var(--accent-health);
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .health-bar {
+            height: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .health-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s, background-color 0.5s;
+        }
+
+        .health-bar-fill.excellent { background: linear-gradient(90deg, #2d5a27, #3d7a37); }
+        .health-bar-fill.good { background: linear-gradient(90deg, #5a7a27, #7a9a37); }
+        .health-bar-fill.warning { background: linear-gradient(90deg, #cc6600, #cc4400); }
+        .health-bar-fill.danger { background: linear-gradient(90deg, #8b0000, #a52a2a); }
+        .health-bar-fill.critical { background: linear-gradient(90deg, #660000, #8b0000); animation: pulse-bar 0.5s infinite; }
+
+        @keyframes pulse-bar {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .organ-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .organ-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            padding: 12px;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .organ-card:hover {
+            border-color: var(--border-strong);
+            transform: translateY(-2px);
+        }
+
+        .organ-card.damaged {
+            border-color: var(--accent-danger);
+            box-shadow: 0 0 10px var(--glow-danger);
+        }
+
+        .organ-icon {
+            width: 32px;
+            height: 32px;
+            margin: 0 auto 8px;
+            fill: var(--text-secondary);
+            transition: fill 0.3s;
+        }
+
+        .organ-card.damaged .organ-icon {
+            fill: var(--accent-danger);
+        }
+
+        .organ-name {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .organ-value {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .interactive-panel {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .interactive-panel .panel-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            padding: 40px;
+        }
+
+        .cigarette-area {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            aspect-ratio: 1.5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .cigarette-btn {
+            width: 180px;
+            height: 60px;
+            background: linear-gradient(135deg, #f5f5f5 0%, #d0d0d0 100%);
+            border: 2px solid #888;
+            border-radius: 30px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-weight: 600;
+            font-size: 1rem;
+            color: #333;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .cigarette-btn::before {
+            content: '';
+            position: absolute;
+            right: -5px;
+            width: 25px;
+            height: 12px;
+            background: linear-gradient(90deg, #ff6600, #ff3300);
+            border-radius: 0 6px 6px 0;
+        }
+
+        .cigarette-btn:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255, 100, 0, 0.3);
+        }
+
+        .cigarette-btn:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+
+        .cigarette-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .cigarette-btn.smoking {
+            animation: smoke-glow 0.5s ease-out;
+        }
+
+        @keyframes smoke-glow {
+            0% { box-shadow: 0 0 0 rgba(255, 100, 0, 0); }
+            50% { box-shadow: 0 0 30px rgba(255, 100, 0, 0.6); }
+            100% { box-shadow: 0 0 0 rgba(255, 100, 0, 0); }
+        }
+
+        .cigarette-icon {
+            width: 24px;
+            height: 24px;
+        }
+
+        .smoke-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .smoke-container.active {
+            opacity: 1;
+        }
+
+        .smoke-particle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: radial-gradient(circle, rgba(150,150,150,0.6) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: rise-smoke 2s ease-out forwards;
+        }
+
+        @keyframes rise-smoke {
+            0% {
+                transform: translateY(0) scale(1);
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateY(-100px) translateX(var(--drift, 20px)) scale(2);
+                opacity: 0;
+            }
+        }
+
+        .smoke-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .smoke-stat-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .smoke-stat-value {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            transition: all 0.3s;
+        }
+
+        .smoke-stat-value.changed {
+            color: var(--accent-danger);
+            animation: stat-jump 0.3s ease-out;
+        }
+
+        @keyframes stat-jump {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .smoke-stat-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .smoke-stat-change {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--accent-danger);
+            margin-top: 4px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .smoke-stat-change.show {
+            opacity: 1;
+        }
+
+        .daily-limit {
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .daily-limit-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+        }
+
+        .daily-limit-label {
+            color: var(--text-secondary);
+        }
+
+        .daily-limit-value {
+            font-family: 'IBM Plex Mono', monospace;
+            font-weight: 600;
+        }
+
+        .daily-limit-bar {
+            height: 6px;
+            background: var(--bg-tertiary);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .daily-limit-fill {
+            height: 100%;
+            background: var(--accent-health);
+            border-radius: 3px;
+            transition: width 0.3s, background-color 0.3s;
+        }
+
+        .daily-limit-fill.warning {
+            background: var(--accent-warning);
+        }
+
+        .daily-limit-fill.danger {
+            background: var(--accent-danger);
+        }
+
+        .social-panel .panel-content {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .family-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .family-member {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            transition: all 0.3s;
+        }
+
+        .family-member.affected {
+            border-color: var(--accent-warning);
+        }
+
+        .family-member.critical {
+            border-color: var(--accent-danger);
+            animation: pulse-border 1s infinite;
+        }
+
+        @keyframes pulse-border {
+            0%, 100% { box-shadow: 0 0 0 rgba(139, 0, 0, 0); }
+            50% { box-shadow: 0 0 10px var(--glow-danger); }
+        }
+
+        .family-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--bg-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .family-info {
+            flex: 1;
+        }
+
+        .family-name {
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .family-health-bar {
+            height: 4px;
+            background: var(--bg-secondary);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .family-health-fill {
+            height: 100%;
+            background: var(--accent-health);
+            border-radius: 2px;
+            transition: width 0.3s, background-color 0.3s;
+        }
+
+        .environment-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .env-stat {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .env-stat-value {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+
+        .env-stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .economy-section {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            padding: 16px;
+        }
+
+        .economy-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px dashed var(--border-subtle);
+        }
+
+        .economy-row:last-child {
+            border-bottom: none;
+        }
+
+        .economy-label {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .economy-value {
+            font-family: 'IBM Plex Mono', monospace;
+            font-weight: 600;
+        }
+
+        .economy-equivalent {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .time-display {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .time-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.1rem;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        .time-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .time-item {
+            text-align: center;
+            padding: 10px;
+            background: var(--bg-primary);
+            border-radius: 6px;
+        }
+
+        .time-value {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--accent-danger);
+        }
+
+        .time-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .trend-btn {
+            margin-top: 12px;
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, var(--accent-danger), #660000);
+            border: none;
+            color: white;
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-weight: 500;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .trend-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px var(--glow-danger);
+        }
+
+        .social-impact-deep {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .social-section-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1rem;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .social-section-title svg {
+            width: 18px;
+            height: 18px;
+            fill: var(--accent-danger);
+        }
+
+        .social-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .social-stat-card {
+            background: var(--bg-primary);
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .social-stat-icon {
+            font-size: 1.5rem;
+            margin-bottom: 6px;
+        }
+
+        .social-stat-value {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--accent-danger);
+        }
+
+        .social-stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .social-event-log {
+            margin-top: 12px;
+            padding: 12px;
+            background: var(--bg-primary);
+            border-radius: 6px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .social-event {
+            padding: 8px 0;
+            border-bottom: 1px dashed var(--border-subtle);
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 8px;
+        }
+
+        .social-event:last-child {
+            border-bottom: none;
+        }
+
+        .social-event-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .legal-bar {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-top: 24px;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        .legal-country {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legal-flag {
+            width: 24px;
+            height: 16px;
+            border-radius: 2px;
+            background: var(--bg-tertiary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+        }
+
+        .legal-country-name {
+            font-weight: 500;
+        }
+
+        .legal-info {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .legal-tag {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+
+        .legal-tag svg {
+            width: 14px;
+            height: 14px;
+            fill: currentColor;
+        }
+
+        .legal-tag.danger {
+            background: var(--accent-danger);
+            color: white;
+        }
+
+        .legal-tag.warning {
+            background: var(--accent-warning);
+            color: white;
+        }
+
+        .legal-tag.info {
+            color: var(--text-secondary);
+        }
+
+        .statistics-section {
+            margin-top: 24px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+        }
+
+        .stat-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .stat-card-value {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .stat-card-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            transform: scale(0.9);
+            transition: transform 0.3s;
+        }
+
+        .modal-overlay.active .modal {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.5rem;
+            letter-spacing: 2px;
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-subtle);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .welcome-modal .modal {
+            border: 2px solid var(--accent-danger);
+        }
+
+        .welcome-content {
+            text-align: center;
+        }
+
+        .welcome-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            fill: var(--accent-danger);
+        }
+
+        .welcome-text {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .welcome-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            text-align: left;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .form-input {
+            padding: 12px 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-danger);
+            box-shadow: 0 0 0 3px var(--glow-danger);
+        }
+
+        .age-warning {
+            background: var(--accent-warning);
+            color: white;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            display: none;
+        }
+
+        .age-warning.show {
+            display: block;
+        }
+
+        .disease-wheel-container {
+            text-align: center;
+        }
+
+        .disease-wheel {
+            width: 250px;
+            height: 250px;
+            margin: 20px auto;
+            position: relative;
+        }
+
+        .wheel-result {
+            margin-top: 20px;
+            padding: 20px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            border-left: 4px solid var(--accent-danger);
+        }
+
+        .wheel-result-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.3rem;
+            color: var(--accent-danger);
+            margin-bottom: 8px;
+        }
+
+        .wheel-result-desc {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .ending-modal .modal {
+            border: 2px solid var(--accent-danger);
+            max-width: 600px;
+        }
+
+        .ending-header {
+            background: var(--accent-danger);
+            padding: 30px;
+            text-align: center;
+        }
+
+        .ending-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2rem;
+            letter-spacing: 3px;
+            margin-bottom: 8px;
+        }
+
+        .ending-subtitle {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        .ending-content {
+            padding: 30px;
+        }
+
+        .diagnosis-card {
+            background: #fff;
+            color: #000;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 20px;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .diagnosis-header {
+            font-weight: 600;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #000;
+            margin-bottom: 12px;
+        }
+
+        .diagnosis-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 0.9rem;
+        }
+
+        .diagnosis-label {
+            color: #666;
+        }
+
+        .ending-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .toast-container {
+            position: fixed;
+            top: 100px;
+            right: 24px;
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .toast {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 16px 20px;
+            min-width: 280px;
+            max-width: 350px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            transform: translateX(120%);
+            transition: transform 0.3s ease-out;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.danger {
+            border-left: 4px solid var(--accent-danger);
+        }
+
+        .toast.warning {
+            border-left: 4px solid var(--accent-warning);
+        }
+
+        .toast.info {
+            border-left: 4px solid var(--accent-info);
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--accent-health);
+        }
+
+        .toast-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toast-message {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .fine-notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: var(--bg-secondary);
+            border: 3px solid var(--accent-warning);
+            border-radius: 12px;
+            padding: 30px 40px;
+            text-align: center;
+            z-index: 1001;
+            transition: transform 0.3s ease-out;
+        }
+
+        .fine-notification.show {
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .fine-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 16px;
+            fill: var(--accent-warning);
+        }
+
+        .fine-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.5rem;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+        }
+
+        .fine-amount {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--accent-warning);
+        }
+
+        .fine-reason {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 8px;
+        }
+
+        .organ-detail-content {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .organ-detail-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .organ-detail-icon {
+            width: 48px;
+            height: 48px;
+            fill: var(--accent-danger);
+        }
+
+        .organ-detail-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.3rem;
+        }
+
+        .organ-detail-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .organ-stat-card {
+            background: var(--bg-tertiary);
+            padding: 12px;
+            border-radius: 6px;
+        }
+
+        .organ-stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .organ-stat-value {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .organ-effects {
+            list-style: none;
+        }
+
+        .organ-effect {
+            padding: 12px 0;
+            border-bottom: 1px dashed var(--border-subtle);
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .organ-effect:last-child {
+            border-bottom: none;
+        }
+
+        .effect-icon {
+            width: 20px;
+            height: 20px;
+            fill: var(--accent-danger);
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .effect-text {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .source-citation {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            padding-top: 12px;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .trend-modal .modal {
+            max-width: 700px;
+        }
+
+        .trend-tabs {
+            display: flex;
+            gap: 8px;
+            padding: 16px 24px 0;
+        }
+
+        .trend-tab {
+            padding: 8px 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px 6px 0 0;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+
+        .trend-tab.active {
+            background: var(--accent-danger);
+            color: white;
+            border-color: var(--accent-danger);
+        }
+
+        .trend-content {
+            padding: 20px 24px;
+        }
+
+        .trend-chart {
+            height: 200px;
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+            padding: 20px 0;
+            border-bottom: 2px solid var(--border-subtle);
+            border-left: 2px solid var(--border-subtle);
+        }
+
+        .trend-bar {
+            flex: 1;
+            background: linear-gradient(to top, var(--accent-danger), var(--accent-warning));
+            border-radius: 4px 4px 0 0;
+            position: relative;
+            transition: all 0.3s;
+        }
+
+        .trend-bar-label {
+            position: absolute;
+            bottom: -24px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .trend-bar-value {
+            position: absolute;
+            top: -24px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-primary);
+        }
+
+        .trend-metrics {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-top: 24px;
+        }
+
+        .trend-metric {
+            background: var(--bg-tertiary);
+            padding: 16px;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent-danger);
+        }
+
+        .trend-metric-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .trend-metric-value {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--accent-danger);
+        }
+
+        .text-danger { color: var(--accent-danger); }
+        .text-warning { color: var(--accent-warning); }
+        .text-success { color: var(--accent-health); }
+        .text-muted { color: var(--text-muted); }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="warning-banner" role="banner">
+        ⚠️ 教育目的 · 禁止模仿 · 吸烟有害健康
+    </div>
+
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <svg class="logo-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+                <span class="logo-text">抽烟危害模拟器</span>
+            </div>
+            <div class="header-actions">
+                <select class="country-selector" id="countrySelector" aria-label="选择国家">
+                    <option value="CN">🇨🇳 中国</option>
+                    <option value="US">🇺🇸 美国</option>
+                    <option value="GB">🇬🇧 英国</option>
+                    <option value="SG">🇸🇬 新加坡</option>
+                    <option value="JP">🇯🇵 日本</option>
+                    <option value="AU">🇦🇺 澳大利亚</option>
+                    <option value="BR">🇧🇷 巴西</option>
+                    <option value="IN">🇮🇳 印度</option>
+                    <option value="FR">🇫🇷 法国</option>
+                    <option value="DE">🇩🇪 德国</option>
+                </select>
+                <button class="btn btn-success" id="quitBtn" aria-label="开始戒断">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                    </svg>
+                    开始戒断
+                </button>
+                <button class="btn btn-success" id="nextDayBtn" aria-label="下一天">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19 4H5a2 2 0 00-2 2v12a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2zm0 14H5V8h14v10zM12 11l-5 5 1.41 1.41L12 13.83l5.59 5.59L19 17l-7-7z"/>
+                    </svg>
+                    下一天
+                </button>
+                <button class="btn btn-secondary" id="resetBtn" aria-label="完整重置">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+                    </svg>
+                    完整重置
+                </button>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <section class="panel health-panel" aria-label="健康状态">
+                <div class="panel-header">
+                    <h2 class="panel-title">
+                        <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-1 11h-4v4h-4v-4H6v-4h4V6h4v4h4v4z"/></svg>
+                        健康监控
+                    </h2>
+                </div>
+                <div class="panel-content">
+                    <div class="lung-container">
+                        <svg class="lung-svg" id="lungVisualization" viewBox="0 0 200 160" aria-label="肺部健康可视化">
+                            <defs>
+                                <linearGradient id="lungGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" id="lungStop1" style="stop-color:#ffb3b3"/>
+                                    <stop offset="100%" id="lungStop2" style="stop-color:#ff8080"/>
+                                </linearGradient>
+                                <filter id="lungNoise">
+                                    <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" result="noise"/>
+                                    <feColorMatrix type="saturate" values="0"/>
+                                    <feBlend in="SourceGraphic" in2="noise" mode="multiply"/>
+                                </filter>
+                            </defs>
+                            <path id="leftLung" d="M60 20 Q40 40 35 80 Q30 120 50 140 Q70 155 90 140 Q95 120 90 80 Q85 40 60 20" 
+                                  fill="url(#lungGradient)" stroke="#aa6666" stroke-width="2" filter="url(#lungNoise)"/>
+                            <path id="rightLung" d="M140 20 Q160 40 165 80 Q170 120 155 140 Q135 155 115 140 Q110 120 115 80 Q120 40 140 20" 
+                                  fill="url(#lungGradient)" stroke="#aa6666" stroke-width="2" filter="url(#lungNoise)"/>
+                            <g id="bronchi" opacity="0.5">
+                                <path d="M75 80 Q60 90 50 100" stroke="#aa6666" stroke-width="1.5" fill="none"/>
+                                <path d="M75 80 Q65 85 55 95" stroke="#aa6666" stroke-width="1" fill="none"/>
+                                <path d="M125 80 Q140 90 150 100" stroke="#aa6666" stroke-width="1.5" fill="none"/>
+                                <path d="M125 80 Q135 85 145 95" stroke="#aa6666" stroke-width="1" fill="none"/>
+                            </g>
+                            <g id="tarSpots"></g>
+                        </svg>
+                        <div class="lung-label" id="lungLabel">肺组织健康度: 100%</div>
+                    </div>
+
+                    <div class="health-stat">
+                        <div class="health-stat-header">
+                            <span class="health-stat-label">预期健康寿命</span>
+                            <span class="health-stat-value" id="healthValue">100%</span>
+                        </div>
+                        <div class="health-bar">
+                            <div class="health-bar-fill excellent" id="healthBar" style="width: 100%"></div>
+                        </div>
+                    </div>
+
+                    <div class="organ-grid">
+                        <div class="organ-card" id="organLungs" tabindex="0" role="button" aria-label="查看肺部详情">
+                            <svg class="organ-icon" viewBox="0 0 24 24">
+                                <path d="M19.5 6c-1.38 0-2.5 1.12-2.5 2.5V9h-1V8.5C16 7.12 14.88 6 13.5 6h-3C9.12 6 8 7.12 8 8.5V9H7V8.5C7 7.12 5.88 6 4.5 6S2 7.12 2 8.5v5C2 14.88 3.12 16 4.5 16s2.5-1.12 2.5-2.5V12h1v1.5C8 14.88 9.12 16 10.5 16h3c1.38 0 2.5-1.12 2.5-2.5V12h1v1.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5v-5C22 7.12 20.88 6 19.5 6z"/>
+                            </svg>
+                            <div class="organ-name">肺</div>
+                            <div class="organ-value" id="lungsValue">100%</div>
+                        </div>
+                        <div class="organ-card" id="organHeart" tabindex="0" role="button" aria-label="查看心脏详情">
+                            <svg class="organ-icon" viewBox="0 0 24 24">
+                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                            </svg>
+                            <div class="organ-name">心</div>
+                            <div class="organ-value" id="heartValue">100%</div>
+                        </div>
+                        <div class="organ-card" id="organMouth" tabindex="0" role="button" aria-label="查看口腔详情">
+                            <svg class="organ-icon" viewBox="0 0 24 24">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM7 13c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm10 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-5 4c-2.33 0-4.31-1.46-5.11-3.5h10.22c-.8 2.04-2.78 3.5-5.11 3.5z"/>
+                            </svg>
+                            <div class="organ-name">口腔</div>
+                            <div class="organ-value" id="mouthValue">100%</div>
+                        </div>
+                        <div class="organ-card" id="organBlood" tabindex="0" role="button" aria-label="查看血液详情">
+                            <svg class="organ-icon" viewBox="0 0 24 24">
+                                <path d="M12 2c-5.33 4.55-8 8.48-8 11.8 0 4.98 3.8 8.2 8 8.2s8-3.22 8-8.2c0-3.32-2.67-7.25-8-11.8z"/>
+                            </svg>
+                            <div class="organ-name">血液</div>
+                            <div class="organ-value" id="bloodValue">100%</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel interactive-panel" aria-label="模拟交互">
+                <div class="panel-header">
+                    <h2 class="panel-title">
+                        <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                        吸烟模拟
+                    </h2>
+                </div>
+                <div class="panel-content">
+                    <div class="cigarette-area">
+                        <button class="cigarette-btn" id="smokeBtn" aria-label="点击吸烟">
+                            <svg class="cigarette-icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M18.5 2H5.5C4.12 2 3 3.12 3 4.5v15C3 20.88 4.12 22 5.5 22h13c1.38 0 2.5-1.12 2.5-2.5v-15C21 3.12 19.88 2 18.5 2z"/>
+                            </svg>
+                            点击吸烟
+                        </button>
+                        <div class="smoke-container" id="smokeContainer" aria-hidden="true"></div>
+                    </div>
+
+                    <div class="smoke-stats">
+                        <div class="smoke-stat-card">
+                            <div class="smoke-stat-value" id="totalCigarettes">0</div>
+                            <div class="smoke-stat-label">累计吸烟(支)</div>
+                            <div class="smoke-stat-change" id="cigChange">+1</div>
+                        </div>
+                        <div class="smoke-stat-card">
+                            <div class="smoke-stat-value" id="totalTar">0<span style="font-size: 0.6em">mg</span></div>
+                            <div class="smoke-stat-label">焦油累计</div>
+                            <div class="smoke-stat-change" id="tarChange">+10mg</div>
+                        </div>
+                        <div class="smoke-stat-card">
+                            <div class="smoke-stat-value" id="heartRate">72<span style="font-size: 0.6em">bpm</span></div>
+                            <div class="smoke-stat-label">当前心率</div>
+                            <div class="smoke-stat-change" id="hrChange">+8</div>
+                        </div>
+                    </div>
+
+                    <div class="daily-limit">
+                        <div class="daily-limit-header">
+                            <span class="daily-limit-label">今日吸烟量</span>
+                            <span class="daily-limit-value"><span id="todayCigarettes">0</span> / 30 支</span>
+                        </div>
+                        <div class="daily-limit-bar">
+                            <div class="daily-limit-fill" id="dailyLimitFill" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel social-panel" aria-label="社会影响">
+                <div class="panel-header">
+                    <h2 class="panel-title">
+                        <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                        社会危害
+                    </h2>
+                </div>
+                <div class="panel-content">
+                    <div class="family-section">
+                        <h3 style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">二手烟受害者</h3>
+                        <div class="family-member" id="familyChild">
+                            <div class="family-avatar">👶</div>
+                            <div class="family-info">
+                                <div class="family-name">孩子</div>
+                                <div class="family-health-bar">
+                                    <div class="family-health-fill" style="width: 100%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="family-member" id="familyPartner">
+                            <div class="family-avatar">👩</div>
+                            <div class="family-info">
+                                <div class="family-name">伴侣</div>
+                                <div class="family-health-bar">
+                                    <div class="family-health-fill" style="width: 100%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="family-member" id="familyColleague">
+                            <div class="family-avatar">👨</div>
+                            <div class="family-info">
+                                <div class="family-name">同事</div>
+                                <div class="family-health-bar">
+                                    <div class="family-health-fill" style="width: 100%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="environment-stats">
+                        <div class="env-stat">
+                            <div class="env-stat-value" id="buttCount">0</div>
+                            <div class="env-stat-label">乱扔烟头</div>
+                        </div>
+                        <div class="env-stat">
+                            <div class="env-stat-value" id="fireRisk">0%</div>
+                            <div class="env-stat-label">火灾风险</div>
+                        </div>
+                    </div>
+
+                    <div class="economy-section">
+                        <h3 style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">经济成本</h3>
+                        <div class="economy-row">
+                            <span class="economy-label">已花费</span>
+                            <span class="economy-value" id="spentMoney">¥0.00</span>
+                        </div>
+                        <div class="economy-row">
+                            <span class="economy-label">剩余资金</span>
+                            <span class="economy-value" id="remainingMoney">¥5000.00</span>
+                        </div>
+                        <div class="economy-equivalent" id="moneyEquivalent">
+                            这些钱可以买0本书
+                        </div>
+                    </div>
+
+                    <div class="time-display">
+                        <h3 class="time-title">📅 时间维度</h3>
+                        <div class="time-grid">
+                            <div class="time-item">
+                                <div class="time-value" id="timeMonthly">0</div>
+                                <div class="time-label">月吸烟量估算</div>
+                            </div>
+                            <div class="time-item">
+                                <div class="time-value" id="timeYearly">0</div>
+                                <div class="time-label">年吸烟量估算</div>
+                            </div>
+                            <div class="time-item">
+                                <div class="time-value" id="timeYearsLoss">0</div>
+                                <div class="time-label">预计寿命损失</div>
+                            </div>
+                        </div>
+                        <button class="trend-btn" id="trendBtn">📈 查看未来趋势预测</button>
+                    </div>
+
+                    <div class="social-impact-deep">
+                        <h3 class="social-section-title">
+                            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg>
+                            社会深层影响
+                        </h3>
+                        <div class="social-stats-grid">
+                            <div class="social-stat-card">
+                                <div class="social-stat-icon">🏥</div>
+                                <div class="social-stat-value" id="socialHealthCost">¥0</div>
+                                <div class="social-stat-label">医疗负担</div>
+                            </div>
+                            <div class="social-stat-card">
+                                <div class="social-stat-icon">👥</div>
+                                <div class="social-stat-value" id="socialExposed">0人</div>
+                                <div class="social-stat-label">二手烟暴露</div>
+                            </div>
+                            <div class="social-stat-card">
+                                <div class="social-stat-icon">🚑</div>
+                                <div class="social-stat-value" id="socialFireIncidents">0%</div>
+                                <div class="social-stat-label">火灾概率</div>
+                            </div>
+                            <div class="social-stat-card">
+                                <div class="social-stat-icon">💼</div>
+                                <div class="social-stat-value" id="socialWorkLoss">0%</div>
+                                <div class="social-stat-label">工作效率下降</div>
+                            </div>
+                        </div>
+                        <div class="social-event-log" id="socialEventLog">
+                            <div class="social-event">
+                                <div class="social-event-icon">📝</div>
+                                <div>开始吸烟记录...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <div class="legal-bar" role="complementary" aria-label="法律状态">
+            <div class="legal-country">
+                <span class="legal-flag" id="legalFlag">🇨🇳</span>
+                <span class="legal-country-name" id="legalCountry">中国</span>
+            </div>
+            <div class="legal-info">
+                <span class="legal-tag info" id="indoorBan">
+                    <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                    室内禁烟
+                </span>
+                <span class="legal-tag info" id="ageLimit">
+                    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+                    最低18岁
+                </span>
+                <span class="legal-tag warning" id="fineTag">
+                    <svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+                    罚款 ¥20-200
+                </span>
+            </div>
+        </div>
+
+        <section class="statistics-section">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-card-value" id="statLifeYears">0</div>
+                    <div class="stat-card-label">预计寿命损失(年)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-value" id="statCancerRisk">1x</div>
+                    <div class="stat-card-label">肺癌风险倍数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-value" id="statCO">0<span style="font-size: 0.6em">mg</span></div>
+                    <div class="stat-card-label">一氧化碳累计</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-value" id="statOxygen">99%</div>
+                    <div class="stat-card-label">血氧饱和度</div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="modal-overlay welcome-modal" id="welcomeModal">
+        <div class="modal" role="dialog" aria-labelledby="welcomeTitle">
+            <div class="modal-header">
+                <h2 class="modal-title" id="welcomeTitle">⚠️ 重要声明</h2>
+                <button class="modal-close" aria-label="关闭" disabled><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+            </div>
+            <div class="modal-body">
+                <div class="welcome-content">
+                    <svg class="welcome-icon" viewBox="0 0 24 24">
+                        <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+                    </svg>
+                    <p class="welcome-text">
+                        本模拟器旨在通过数据驱动的交互体验，让公众直观了解吸烟对健康、社会和法律的危害。<br><br>
+                        <strong style="color: var(--accent-danger);">本模拟器不鼓励、不美化吸烟行为。</strong>
+                    </p>
+                    <div class="welcome-form">
+                        <div class="form-group">
+                            <label class="form-label" for="ageInput">请输入您的年龄 (用于法律检查)</label>
+                            <input type="number" class="form-input" id="ageInput" min="1" max="120" placeholder="18" required>
+                            <div class="age-warning" id="ageWarning">
+                                ⚠️ 您未满13岁，将只显示教育内容，无法进行交互模拟。
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" id="startSimulation">确认并开始</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="organModal">
+        <div class="modal" role="dialog" aria-labelledby="organModalTitle">
+            <div class="modal-header">
+                <h2 class="modal-title" id="organModalTitle">器官详情</h2>
+                <button class="modal-close" aria-label="关闭"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+            </div>
+            <div class="modal-body">
+                <div class="organ-detail-content" id="organDetailContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="diseaseModal">
+        <div class="modal" role="dialog" aria-labelledby="diseaseModalTitle">
+            <div class="modal-header">
+                <h2 class="modal-title" id="diseaseModalTitle">⚠️ 健康警告</h2>
+                <button class="modal-close" aria-label="关闭"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+            </div>
+            <div class="modal-body">
+                <div class="disease-wheel-container">
+                    <p style="color: var(--text-secondary);">每吸100支烟，您患以下疾病的风险显著增加：</p>
+                    <div class="disease-wheel" id="diseaseWheel">
+                        <svg viewBox="0 0 200 200" width="100%" height="100%"></svg>
+                    </div>
+                    <div class="wheel-result" id="wheelResult">
+                        <div class="wheel-result-title">疾病风险评估</div>
+                        <div class="wheel-result-desc" id="wheelResultDesc">数据加载中...</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="closeDiseaseModal">我已知悉</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay ending-modal" id="endingModal">
+        <div class="modal" role="dialog" aria-labelledby="endingModalTitle">
+            <div class="ending-header">
+                <h2 class="ending-title">诊断通知书</h2>
+                <div class="ending-subtitle">模拟结束</div>
+            </div>
+            <div class="ending-content">
+                <div class="diagnosis-card">
+                    <div class="diagnosis-header">医疗诊断报告</div>
+                    <div class="diagnosis-row">
+                        <span class="diagnosis-label">患者ID:</span>
+                        <span id="diagnosisId">SIM-000000</span>
+                    </div>
+                    <div class="diagnosis-row">
+                        <span class="diagnosis-label">累计吸烟量:</span>
+                        <span id="diagnosisTotal">3000+ 支</span>
+                    </div>
+                    <div class="diagnosis-row">
+                        <span class="diagnosis-label">焦油沉积量:</span>
+                        <span id="diagnosisTar">30000+ mg</span>
+                    </div>
+                    <div class="diagnosis-row">
+                        <span class="diagnosis-label">诊断结果:</span>
+                        <span class="text-danger" id="diagnosisResult">严重吸烟相关疾病</span>
+                    </div>
+                    <div class="diagnosis-row">
+                        <span class="diagnosis-label">预期寿命损失:</span>
+                        <span class="text-danger" id="diagnosisLifeLoss">约 2-3 年</span>
+                    </div>
+                </div>
+                <p style="text-align: center; color: var(--text-secondary); margin-bottom: 20px;">
+                    这是一个严肃的警告。数据来源于WHO、CDC等权威机构。
+                </p>
+                <div class="ending-actions">
+                    <button class="btn btn-secondary" id="restartSimulation">重新开始</button>
+                    <button class="btn btn-success" id="quitSimulation">开始戒断</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay trend-modal" id="trendModal">
+        <div class="modal" role="dialog" aria-labelledby="trendModalTitle">
+            <div class="modal-header">
+                <h2 class="modal-title" id="trendModalTitle">📈 未来趋势预测</h2>
+                <button class="modal-close" aria-label="关闭"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+            </div>
+            <div class="modal-body">
+                <div class="trend-tabs" id="trendTabs">
+                    <div class="trend-tab active" data-tab="1year">1年</div>
+                    <div class="trend-tab" data-tab="5years">5年</div>
+                    <div class="trend-tab" data-tab="10years">10年</div>
+                    <div class="trend-tab" data-tab="20years">20年</div>
+                </div>
+                <div class="trend-content" id="trendContent">
+                    <div class="trend-chart" id="trendChart"></div>
+                    <div class="trend-metrics" id="trendMetrics"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+    <div class="fine-notification" id="fineNotification" role="alert">
+        <svg class="fine-icon" viewBox="0 0 24 24">
+            <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+        </svg>
+        <div class="fine-title">违 规 罚 款</div>
+        <div class="fine-amount" id="fineAmount">¥200</div>
+        <div class="fine-reason" id="fineReason">在室内公共场所吸烟</div>
+    </div>
+
+    <script>
+        const COUNTRY_LAWS = {
+            CN: { name: '中国', flag: '🇨🇳', indoorBan: true, minAge: 18, pricePerPack: 16, fineMin: 20, fineMax: 200 },
+            US: { name: '美国', flag: '🇺🇸', indoorBan: true, minAge: 21, pricePerPack: 42, fineMin: 50, fineMax: 500 },
+            GB: { name: '英国', flag: '🇬🇧', indoorBan: true, minAge: 18, pricePerPack: 67, fineMin: 60, fineMax: 200 },
+            SG: { name: '新加坡', flag: '🇸🇬', indoorBan: true, minAge: 21, pricePerPack: 60, fineMin: 500, fineMax: 1000 },
+            JP: { name: '日本', flag: '🇯🇵', indoorBan: false, minAge: 20, pricePerPack: 22, fineMin: 30, fineMax: 300 },
+            AU: { name: '澳大利亚', flag: '🇦🇺', indoorBan: true, minAge: 18, pricePerPack: 110, fineMin: 100, fineMax: 300 },
+            BR: { name: '巴西', flag: '🇧🇷', indoorBan: true, minAge: 18, pricePerPack: 20, fineMin: 50, fineMax: 200 },
+            IN: { name: '印度', flag: '🇮🇳', indoorBan: false, minAge: 18, pricePerPack: 15, fineMin: 10, fineMax: 100 },
+            FR: { name: '法国', flag: '🇫🇷', indoorBan: true, minAge: 18, pricePerPack: 47, fineMin: 60, fineMax: 200 },
+            DE: { name: '德国', flag: '🇩🇪', indoorBan: false, minAge: 18, pricePerPack: 35, fineMin: 30, fineMax: 150 }
+        };
+
+        const DISEASES = [
+            { name: '口腔癌', probability: 15, description: '口腔癌风险增加35%，5年生存率约50%。来源：WHO' },
+            { name: '喉癌', probability: 12, description: '喉癌风险增加40%，可能导致失声。来源：CDC' },
+            { name: '肺癌', probability: 25, description: '肺癌风险增加8倍，是男性癌症死亡首因。来源：WHO' },
+            { name: '心脏病', probability: 20, description: '冠心病风险增加2-4倍。来源：CDC' },
+            { name: '中风', probability: 18, description: '中风风险增加50%，可能导致瘫痪。来源：WHO' },
+            { name: '肺气肿', probability: 10, description: '不可逆的肺组织破坏，需要长期氧疗。来源：ATS' }
+        ];
+
+        const ORGAN_DETAILS = {
+            lungs: {
+                name: '肺部',
+                icon: '<svg class="organ-detail-icon" viewBox="0 0 24 24"><path d="M19.5 6c-1.38 0-2.5 1.12-2.5 2.5V9h-1V8.5C16 7.12 14.88 6 13.5 6h-3C9.12 6 8 7.12 8 8.5V9H7V8.5C7 7.12 5.88 6 4.5 6S2 7.12 2 8.5v5C2 14.88 3.12 16 4.5 16s2.5-1.12 2.5-2.5V12h1v1.5C8 14.88 9.12 16 10.5 16h3c1.38 0 2.5-1.12 2.5-2.5V12h1v1.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5v-5C22 7.12 20.88 6 19.5 6z"/></svg>',
+                effects: ['肺纤毛麻痹，失去自洁功能', '肺泡弹性下降，氧气交换效率降低', '慢性支气管炎风险显著增加', '肺癌风险从1%上升至8%以上']
+            },
+            heart: {
+                name: '心脏',
+                icon: '<svg class="organ-detail-icon" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>',
+                effects: ['心率持续升高，心肌负荷加重', '血管硬化，血压升高', '冠心病风险增加2-4倍', '心律失常风险显著增加']
+            },
+            mouth: {
+                name: '口腔',
+                icon: '<svg class="organ-detail-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM7 13c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm10 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-5 4c-2.33 0-4.31-1.46-5.11-3.5h10.22c-.8 2.04-2.78 3.5-5.11 3.5z"/></svg>',
+                effects: ['牙齿变黄，牙垢沉积', '牙龈萎缩，牙周病风险增加', '味觉灵敏度下降', '口腔黏膜白斑，可能癌变']
+            },
+            blood: {
+                name: '血液系统',
+                icon: '<svg class="organ-detail-icon" viewBox="0 0 24 24"><path d="M12 2c-5.33 4.55-8 8.48-8 11.8 0 4.98 3.8 8.2 8 8.2s8-3.22 8-8.2c0-3.32-2.67-7.25-8-11.8z"/></svg>',
+                effects: ['一氧化碳降低血液携氧能力', '尼古丁导致血管收缩', '血液粘稠度增加，血栓风险上升', '碳氧血红蛋白水平持续升高']
+            }
+        };
+
+        let state = {
+            initialized: false,
+            age: null,
+            country: 'CN',
+            totalCigarettes: 0,
+            todayCigarettes: 0,
+            health: 100,
+            heartRate: 72,
+            oxygenSaturation: 99,
+            organs: { lungs: 100, heart: 100, mouth: 100, blood: 100 },
+            familyHealth: [100, 100, 100],
+            environment: { butts: 0, fireRisk: 0 },
+            money: 5000,
+            spent: 0,
+            warnings: 0,
+            fines: 0,
+            isIndoor: true,
+            diseaseWheelTriggered: false,
+            socialEvents: [],
+            currentTrendTab: '1year'
+        };
+
+        const elements = {
+            welcomeModal: document.getElementById('welcomeModal'),
+            organModal: document.getElementById('organModal'),
+            diseaseModal: document.getElementById('diseaseModal'),
+            endingModal: document.getElementById('endingModal'),
+            trendModal: document.getElementById('trendModal'),
+            fineNotification: document.getElementById('fineNotification'),
+            toastContainer: document.getElementById('toastContainer'),
+            smokeBtn: document.getElementById('smokeBtn'),
+            smokeContainer: document.getElementById('smokeContainer'),
+            countrySelector: document.getElementById('countrySelector'),
+            trendBtn: document.getElementById('trendBtn'),
+            trendTabs: document.getElementById('trendTabs'),
+            trendChart: document.getElementById('trendChart'),
+            trendMetrics: document.getElementById('trendMetrics'),
+            socialEventLog: document.getElementById('socialEventLog')
+        };
+
+        function initSimulation() {
+            showWelcomeModal();
+            setupEventListeners();
+        }
+
+        function showWelcomeModal() {
+            elements.welcomeModal.classList.add('active');
+        }
+
+        function hideWelcomeModal() {
+            elements.welcomeModal.classList.remove('active');
+            state.initialized = true;
+            saveState();
+            renderAll();
+        }
+
+        function smokeCigarette() {
+            if (!state.initialized || state.age < 13) return;
+            if (state.todayCigarettes >= 30) {
+                showToast('warning', '已达每日上限', '今天已吸30支，身体需要休息');
+                return;
+            }
+            if (state.totalCigarettes >= 3000) {
+                showEndingModal();
+                return;
+            }
+
+            state.totalCigarettes++;
+            state.todayCigarettes++;
+
+            const baseDamage = 0.05;
+            const multiplier = 1 + (state.totalCigarettes / 500);
+            const healthLoss = baseDamage * multiplier;
+            state.health = Math.max(0, state.health - healthLoss);
+
+            state.heartRate = Math.min(120, state.heartRate + 8);
+            state.oxygenSaturation = Math.max(85, state.oxygenSaturation - 0.5);
+
+            updateOrganDamage('lungs', 0.5);
+            updateOrganDamage('heart', 0.2);
+            updateOrganDamage('mouth', 0.3);
+            updateOrganDamage('blood', 0.4);
+
+            state.familyHealth = state.familyHealth.map((h, i) => {
+                const damage = [0.1, 0.08, 0.05][i];
+                return Math.max(0, h - damage);
+            });
+
+            state.environment.butts++;
+            if (state.environment.butts > 50) {
+                state.environment.fireRisk = Math.min(100, state.environment.fireRisk + 5);
+            }
+
+            const pricePerCig = (COUNTRY_LAWS[state.country].pricePerPack / 20);
+            state.spent += pricePerCig;
+            state.money -= pricePerCig;
+
+            if (state.isIndoor && COUNTRY_LAWS[state.country].indoorBan) {
+                checkAndApplyFine();
+            }
+
+            checkMilestones();
+            updateSocialImpact();
+            createSmokeAnimation();
+            renderAll();
+            saveState();
+
+            animateStatChange('cigChange');
+            animateStatChange('tarChange');
+            animateStatChange('hrChange');
+        }
+
+        function updateOrganDamage(organ, amount) {
+            const multiplier = 1 + (state.totalCigarettes / 1000);
+            state.organs[organ] = Math.max(0, state.organs[organ] - (amount * multiplier));
+        }
+
+        function checkAndApplyFine() {
+            state.warnings++;
+            const fine = COUNTRY_LAWS[state.country].fineMin + Math.random() * (COUNTRY_LAWS[state.country].fineMax - COUNTRY_LAWS[state.country].fineMin);
+            
+            if (state.warnings > 1) {
+                state.fines += fine;
+                state.money -= fine;
+                showFineNotification(fine);
+            } else {
+                showToast('warning', '法律警告', `${COUNTRY_LAWS[state.country].name}室内公共场所禁止吸烟`);
+            }
+        }
+
+        function showFineNotification(amount) {
+            document.getElementById('fineAmount').textContent = `¥${Math.round(amount)}`;
+            document.getElementById('fineReason').textContent = `在${COUNTRY_LAWS[state.country].name}室内公共场所吸烟`;
+            elements.fineNotification.classList.add('show');
+            setTimeout(() => elements.fineNotification.classList.remove('show'), 3000);
+        }
+
+        function checkMilestones() {
+            if (state.totalCigarettes % 100 === 0 && !state.diseaseWheelTriggered) {
+                state.diseaseWheelTriggered = true;
+                setTimeout(() => {
+                    showDiseaseModal();
+                    state.diseaseWheelTriggered = false;
+                }, 500);
+            }
+
+            const milestones = { 50: { title: '50支里程碑', desc: '呼吸道纤毛开始麻痹，咳嗽增多。来源：CDC' },
+                200: { title: '200支警告', desc: '慢性支气管炎风险上升50%。来源：WHO' },
+                500: { title: '500支危险', desc: '肺部开始出现结节样变化。来源：医学影像研究' },
+                1000: { title: '1000支高危', desc: '肺癌风险提升8倍。来源：IARC' },
+                2000: { title: '2000支警告', desc: '肺气肿症状明显，生活质量下降。来源：ATS' },
+                3000: { title: '3000支终末', desc: '预期寿命减少约2年。来源：NEJM' }
+            };
+            
+            if (milestones[state.totalCigarettes]) {
+                showToast('danger', milestones[state.totalCigarettes].title, milestones[state.totalCigarettes].desc);
+            }
+
+            if (state.totalCigarettes >= 3000) {
+                setTimeout(() => showEndingModal(), 1000);
+            }
+        }
+
+        function updateSocialImpact() {
+            const events = [
+                { icon: '😷', text: '附近路人吸入二手烟，出现咳嗽症状' },
+                { icon: '🏥', text: '医疗系统负担增加，占用公共资源' },
+                { icon: '💨', text: '空气品质下降，PM2.5浓度升高' },
+                { icon: '🤝', text: '社交距离感增强，朋友开始疏远' },
+                { icon: '💼', text: '工作注意力下降，效率降低' }
+            ];
+            const randomEvent = events[Math.floor(Math.random() * events.length)];
+            
+            state.socialEvents.unshift({
+                icon: randomEvent.icon,
+                text: randomEvent.text,
+                time: new Date().toLocaleTimeString()
+            });
+            
+            if (state.socialEvents.length > 10) {
+                state.socialEvents.pop();
+            }
+        }
+
+        function showDiseaseModal() {
+            const totalProb = DISEASES.reduce((sum, d) => sum + d.probability, 0);
+            let random = Math.random() * totalProb;
+            let selected = DISEASES[0];
+            
+            for (const disease of DISEASES) {
+                random -= disease.probability;
+                if (random <= 0) {
+                    selected = disease;
+                    break;
+                }
+            }
+
+            document.getElementById('wheelResultDesc').textContent = selected.description;
+            drawDiseaseWheel();
+            elements.diseaseModal.classList.add('active');
+        }
+
+        function drawDiseaseWheel() {
+            const svg = elements.diseaseModal.querySelector('#diseaseWheel svg');
+            svg.innerHTML = '';
+            
+            const cx = 100, cy = 100, r = 90;
+            const colors = ['#8b0000', '#a52a2a', '#b22222', '#cc4400', '#dc143c', '#ff4500'];
+            
+            let startAngle = -90;
+            DISEASES.forEach((disease, i) => {
+                const angle = (disease.probability / 100) * 360;
+                const endAngle = startAngle + angle;
+                
+                const x1 = cx + r * Math.cos(startAngle * Math.PI / 180);
+                const y1 = cy + r * Math.sin(startAngle * Math.PI / 180);
+                const x2 = cx + r * Math.cos(endAngle * Math.PI / 180);
+                const y2 = cy + r * Math.sin(endAngle * Math.PI / 180);
+                
+                const largeArc = angle > 180 ? 1 : 0;
+                
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`);
+                path.setAttribute('fill', colors[i]);
+                path.setAttribute('stroke', '#1a1a1a');
+                path.setAttribute('stroke-width', '2');
+                svg.appendChild(path);
+                
+                const midAngle = (startAngle + endAngle) / 2;
+                const labelR = r * 0.65;
+                const lx = cx + labelR * Math.cos(midAngle * Math.PI / 180);
+                const ly = cy + labelR * Math.sin(midAngle * Math.PI / 180);
+                
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', lx);
+                text.setAttribute('y', ly);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('dominant-baseline', 'middle');
+                text.setAttribute('fill', 'white');
+                text.setAttribute('font-size', '10');
+                text.setAttribute('font-weight', '600');
+                text.setAttribute('transform', `rotate(${midAngle + 90}, ${lx}, ${ly})`);
+                text.textContent = disease.name;
+                svg.appendChild(text);
+                
+                startAngle = endAngle;
+            });
+            
+            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            circle.setAttribute('cx', cx);
+            circle.setAttribute('cy', cy);
+            circle.setAttribute('r', '25');
+            circle.setAttribute('fill', '#1a1a1a');
+            svg.appendChild(circle);
+        }
+
+        function showEndingModal() {
+            document.getElementById('diagnosisId').textContent = `SIM-${String(state.totalCigarettes).padStart(6, '0')}`;
+            document.getElementById('diagnosisTotal').textContent = `${state.totalCigarettes}+ 支`;
+            document.getElementById('diagnosisTar').textContent = `${state.totalCigarettes * 10}+ mg`;
+            document.getElementById('diagnosisLifeLoss').textContent = `约 ${(state.totalCigarettes / 1500).toFixed(1)} 年`;
+            
+            elements.endingModal.classList.add('active');
+            elements.smokeBtn.disabled = true;
+        }
+
+        function showOrganDetail(organ) {
+            const details = ORGAN_DETAILS[organ];
+            const damage = 100 - state.organs[organ];
+            
+            document.getElementById('organModalTitle').textContent = details.name + '损伤详情';
+            document.getElementById('organDetailContent').innerHTML = `
+                <div class="organ-detail-header">
+                    ${details.icon}
+                    <div>
+                        <div class="organ-detail-title">${details.name}</div>
+                        <div style="color: var(--text-secondary); font-size: 0.9rem;">
+                            当前状态: ${Math.round(state.organs[organ])}% | 损伤: ${Math.round(damage)}%
+                        </div>
+                    </div>
+                </div>
+                <div class="organ-detail-stats">
+                    <div class="organ-stat-card">
+                        <div class="organ-stat-label">健康度</div>
+                        <div class="organ-stat-value text-success">${Math.round(state.organs[organ])}%</div>
+                    </div>
+                    <div class="organ-stat-card">
+                        <div class="organ-stat-label">损伤度</div>
+                        <div class="organ-stat-value text-danger">${Math.round(damage)}%</div>
+                    </div>
+                </div>
+                <ul class="organ-effects">
+                    ${details.effects.map(e => `
+                        <li class="organ-effect">
+                            <svg class="effect-icon" viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+                            <span class="effect-text">${e}</span>
+                        </li>
+                    `).join('')}
+                </ul>
+                <div class="source-citation">
+                    数据来源: WHO全球烟草报告、CDC吸烟与健康事实表、美国胸科学会(ATS)
+                </div>
+            `;
+            
+            elements.organModal.classList.add('active');
+        }
+
+        function showToast(type, title, message) {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <div class="toast-title">
+                    ${type === 'danger' ? '⚠️' : type === 'warning' ? '⚡' : type === 'success' ? '✅' : 'ℹ️'} ${title}
+                </div>
+                <div class="toast-message">${message}</div>
+            `;
+            elements.toastContainer.appendChild(toast);
+            
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        function createSmokeAnimation() {
+            for (let i = 0; i < 8; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'smoke-particle';
+                particle.style.setProperty('--drift', `${(Math.random() - 0.5) * 60}px`);
+                particle.style.animationDelay = `${i * 0.1}s`;
+                elements.smokeContainer.appendChild(particle);
+                setTimeout(() => particle.remove(), 2000);
+            }
+            elements.smokeContainer.classList.add('active');
+            setTimeout(() => elements.smokeContainer.classList.remove('active'), 2000);
+            
+            elements.smokeBtn.classList.add('smoking');
+            setTimeout(() => elements.smokeBtn.classList.remove('smoking'), 500);
+        }
+
+        function animateStatChange(id) {
+            const el = document.getElementById(id);
+            el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), 1000);
+        }
+
+        function nextDay() {
+            state.todayCigarettes = 0;
+            state.warnings = 0;
+            state.isIndoor = true;
+            
+            elements.endingModal.classList.remove('active');
+            elements.trendModal.classList.remove('active');
+            elements.smokeBtn.disabled = false;
+            saveState();
+            renderAll();
+            showToast('info', '新的一天开始了', '每日吸烟量已重置，继续保持或减少吸烟量！');
+        }
+
+        function resetSimulation() {
+            state = {
+                initialized: true,
+                age: state.age,
+                country: state.country,
+                totalCigarettes: 0,
+                todayCigarettes: 0,
+                health: 100,
+                heartRate: 72,
+                oxygenSaturation: 99,
+                organs: { lungs: 100, heart: 100, mouth: 100, blood: 100 },
+                familyHealth: [100, 100, 100],
+                environment: { butts: 0, fireRisk: 0 },
+                money: 5000,
+                spent: 0,
+                warnings: 0,
+                fines: 0,
+                isIndoor: true,
+                diseaseWheelTriggered: false,
+                socialEvents: [],
+                currentTrendTab: '1year'
+            };
+            
+            localStorage.removeItem('smokingSimulatorState');
+            
+            elements.endingModal.classList.remove('active');
+            elements.trendModal.classList.remove('active');
+            elements.smokeBtn.disabled = false;
+            renderAll();
+            showToast('success', '模拟已完全重置', '所有数据已清零，可以重新开始');
+        }
+
+        function quitSmoking() {
+            elements.endingModal.classList.remove('active');
+            elements.smokeBtn.disabled = false;
+            
+            showToast('success', '戒断模式启动', '恭喜做出健康选择！身体开始恢复...');
+            
+            const recoveryInterval = setInterval(() => {
+                if (state.health < 100) {
+                    state.health = Math.min(100, state.health + 0.5);
+                    state.heartRate = Math.max(72, state.heartRate - 0.5);
+                    state.oxygenSaturation = Math.min(99, state.oxygenSaturation + 0.2);
+                    renderAll();
+                } else {
+                    clearInterval(recoveryInterval);
+                }
+            }, 1000);
+        }
+
+        function saveState() {
+            localStorage.setItem('smokingSimulatorState', JSON.stringify(state));
+        }
+
+        function renderAll() {
+            renderLungVisualization();
+            renderHealthStats();
+            renderOrganCards();
+            renderFamilyHealth();
+            renderEnvironment();
+            renderEconomy();
+            renderLegalBar();
+            renderStatistics();
+            renderTimeDisplay();
+            renderSocialImpact();
+        }
+
+        function renderLungVisualization() {
+            const health = state.organs.lungs;
+            const lungStop1 = document.getElementById('lungStop1');
+            const lungStop2 = document.getElementById('lungStop2');
+            
+            if (health > 80) {
+                lungStop1.style.stopColor = '#ffb3b3';
+                lungStop2.style.stopColor = '#ff8080';
+            } else if (health > 60) {
+                lungStop1.style.stopColor = '#b38080';
+                lungStop2.style.stopColor = '#996666';
+            } else if (health > 40) {
+                lungStop1.style.stopColor = '#806060';
+                lungStop2.style.stopColor = '#664444';
+            } else if (health > 20) {
+                lungStop1.style.stopColor = '#503030';
+                lungStop2.style.stopColor = '#3a1f1f';
+            } else {
+                lungStop1.style.stopColor = '#2a1010';
+                lungStop2.style.stopColor = '#1a0505';
+            }
+            
+            const tarSpots = document.getElementById('tarSpots');
+            tarSpots.innerHTML = '';
+            const spots = Math.floor((100 - health) / 10);
+            for (let i = 0; i < spots; i++) {
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', 50 + Math.random() * 100);
+                circle.setAttribute('cy', 30 + Math.random() * 100);
+                circle.setAttribute('r', 3 + Math.random() * 5);
+                circle.setAttribute('fill', '#1a0505');
+                circle.setAttribute('opacity', 0.6);
+                tarSpots.appendChild(circle);
+            }
+            
+            document.getElementById('lungLabel').textContent = `肺组织健康度: ${Math.round(health)}%`;
+        }
+
+        function renderHealthStats() {
+            const healthValue = document.getElementById('healthValue');
+            const healthBar = document.getElementById('healthBar');
+            
+            healthValue.textContent = `${Math.round(state.health)}%`;
+            healthBar.style.width = `${state.health}%`;
+            
+            healthValue.className = 'health-stat-value';
+            healthBar.className = 'health-bar-fill';
+            
+            if (state.health > 80) {
+                healthBar.classList.add('excellent');
+                healthValue.classList.add('good');
+            } else if (state.health > 60) {
+                healthBar.classList.add('good');
+            } else if (state.health > 40) {
+                healthBar.classList.add('warning');
+                healthValue.classList.add('warning');
+            } else if (state.health > 20) {
+                healthBar.classList.add('danger');
+                healthValue.classList.add('critical');
+            } else {
+                healthBar.classList.add('critical');
+                healthValue.classList.add('critical');
+            }
+            
+            document.getElementById('totalCigarettes').textContent = state.totalCigarettes;
+            document.getElementById('totalTar').innerHTML = `${state.totalCigarettes * 10}<span style="font-size: 0.6em">mg</span>`;
+            document.getElementById('heartRate').innerHTML = `${Math.round(state.heartRate)}<span style="font-size: 0.6em">bpm</span>`;
+            document.getElementById('todayCigarettes').textContent = state.todayCigarettes;
+            
+            const dailyFill = document.getElementById('dailyLimitFill');
+            const dailyPercent = (state.todayCigarettes / 30) * 100;
+            dailyFill.style.width = `${dailyPercent}%`;
+            dailyFill.className = 'daily-limit-fill';
+            if (dailyPercent > 66) {
+                dailyFill.classList.add('danger');
+            } else if (dailyPercent > 33) {
+                dailyFill.classList.add('warning');
+            }
+        }
+
+        function renderOrganCards() {
+            ['lungs', 'heart', 'mouth', 'blood'].forEach(organ => {
+                const card = document.getElementById(`organ${organ.charAt(0).toUpperCase() + organ.slice(1)}`);
+                const value = document.getElementById(`${organ}Value`);
+                
+                value.textContent = `${Math.round(state.organs[organ])}%`;
+                value.style.color = state.organs[organ] < 50 ? 'var(--accent-danger)' : state.organs[organ] < 80 ? 'var(--accent-warning)' : 'var(--text-primary)';
+                
+                card.classList.toggle('damaged', state.organs[organ] < 70);
+            });
+        }
+
+        function renderFamilyHealth() {
+            const members = ['familyChild', 'familyPartner', 'familyColleague'];
+            members.forEach((id, i) => {
+                const member = document.getElementById(id);
+                const fill = member.querySelector('.family-health-fill');
+                fill.style.width = `${state.familyHealth[i]}%`;
+                fill.style.background = state.familyHealth[i] < 50 ? 'var(--accent-danger)' : state.familyHealth[i] < 80 ? 'var(--accent-warning)' : 'var(--accent-health)';
+                member.className = 'family-member';
+                if (state.familyHealth[i] < 50) member.classList.add('critical');
+                else if (state.familyHealth[i] < 80) member.classList.add('affected');
+            });
+        }
+
+        function renderEnvironment() {
+            document.getElementById('buttCount').textContent = state.environment.butts;
+            document.getElementById('fireRisk').textContent = `${Math.round(state.environment.fireRisk)}%`;
+            document.getElementById('fireRisk').style.color = state.environment.fireRisk > 50 ? 'var(--accent-danger)' : state.environment.fireRisk > 25 ? 'var(--accent-warning)' : 'var(--text-primary)';
+        }
+
+        function renderEconomy() {
+            document.getElementById('spentMoney').textContent = `¥${state.spent.toFixed(2)}`;
+            document.getElementById('remainingMoney').textContent = `¥${state.money.toFixed(2)}`;
+            document.getElementById('remainingMoney').style.color = state.money < 1000 ? 'var(--accent-danger)' : 'var(--text-primary)';
+            
+            const books = Math.floor(state.spent / 0.5);
+            document.getElementById('moneyEquivalent').textContent = `这些钱可以买 ${books} 本书，或 ${Math.floor(state.spent / 30)} 顿饭`;
+        }
+
+        function renderLegalBar() {
+            const laws = COUNTRY_LAWS[state.country];
+            document.getElementById('legalFlag').textContent = laws.flag;
+            document.getElementById('legalCountry').textContent = laws.name;
+            
+            const indoorBan = document.getElementById('indoorBan');
+            indoorBan.className = laws.indoorBan ? 'legal-tag danger' : 'legal-tag info';
+            indoorBan.innerHTML = `<svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>${laws.indoorBan ? '室内禁烟' : '室内不禁烟'}`;
+            
+            document.getElementById('ageLimit').innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>最低${laws.minAge}岁`;
+            
+            document.getElementById('fineTag').innerHTML = `<svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>罚款 ¥${laws.fineMin}-${laws.fineMax}`;
+        }
+
+        function renderStatistics() {
+            const yearsLost = (state.totalCigarettes / 1500).toFixed(1);
+            const cancerRisk = Math.min(8, 1 + (state.totalCigarettes / 125)).toFixed(1);
+            const totalCO = state.totalCigarettes * 10;
+            
+            document.getElementById('statLifeYears').textContent = yearsLost;
+            document.getElementById('statCancerRisk').textContent = cancerRisk + 'x';
+            document.getElementById('statCO').innerHTML = `${totalCO}<span style="font-size: 0.6em">mg</span>`;
+            document.getElementById('statOxygen').textContent = `${Math.round(state.oxygenSaturation)}%`;
+            
+            document.getElementById('statLifeYears').style.color = yearsLost > 1 ? 'var(--accent-danger)' : yearsLost > 0.5 ? 'var(--accent-warning)' : 'var(--accent-health)';
+            document.getElementById('statCancerRisk').style.color = cancerRisk > 4 ? 'var(--accent-danger)' : cancerRisk > 2 ? 'var(--accent-warning)' : 'var(--accent-health)';
+            document.getElementById('statOxygen').style.color = state.oxygenSaturation < 90 ? 'var(--accent-danger)' : state.oxygenSaturation < 95 ? 'var(--accent-warning)' : 'var(--accent-health)';
+        }
+
+        function renderTimeDisplay() {
+            const monthlyRate = state.todayCigarettes > 0 ? state.totalCigarettes / (state.todayCigarettes / 30) : state.totalCigarettes * 12;
+            const yearlyRate = monthlyRate * 12;
+            const lifeLoss = (state.totalCigarettes / 1500).toFixed(1);
+            
+            document.getElementById('timeMonthly').textContent = Math.round(monthlyRate);
+            document.getElementById('timeYearly').textContent = Math.round(yearlyRate);
+            document.getElementById('timeYearsLoss').textContent = lifeLoss;
+        }
+
+        function renderSocialImpact() {
+            const healthCost = Math.round(state.totalCigarettes * 2.5);
+            const exposedPeople = Math.min(100, Math.round(state.totalCigarettes / 5));
+            const fireRisk = Math.min(100, Math.round(state.totalCigarettes / 30));
+            const workLoss = Math.min(50, Math.round(state.totalCigarettes / 100));
+            
+            document.getElementById('socialHealthCost').textContent = `¥${healthCost}`;
+            document.getElementById('socialExposed').textContent = `${exposedPeople}人`;
+            document.getElementById('socialFireIncidents').textContent = `${fireRisk}%`;
+            document.getElementById('socialWorkLoss').textContent = `${workLoss}%`;
+            
+            elements.socialEventLog.innerHTML = state.socialEvents.map(event => `
+                <div class="social-event">
+                    <div class="social-event-icon">${event.icon}</div>
+                    <div>
+                        <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 2px;">${event.time}</div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">${event.text}</div>
+                    </div>
+                </div>
+            `).join('');
+            
+            if (state.socialEvents.length === 0) {
+                elements.socialEventLog.innerHTML = `<div class="social-event"><div class="social-event-icon">📝</div><div>开始吸烟记录...</div></div>`;
+            }
+        }
+
+        function calculateTrends(years) {
+            const currentRate = state.todayCigarettes > 0 ? state.totalCigarettes / (state.todayCigarettes / 30) : state.totalCigarettes * 12;
+            const projectedCigarettes = currentRate * years;
+            const projectedHealthLoss = Math.min(100, (projectedCigarettes * 0.003));
+            const projectedSpent = (COUNTRY_LAWS[state.country].pricePerPack / 20) * projectedCigarettes;
+            const projectedLifeLoss = projectedCigarettes / 1500;
+            
+            return {
+                cigarettes: Math.round(projectedCigarettes),
+                healthLoss: Math.round(projectedHealthLoss),
+                spent: Math.round(projectedSpent),
+                lifeLoss: projectedLifeLoss.toFixed(1),
+                cancerRisk: Math.min(20, Math.round(1 + (projectedCigarettes / 500))),
+                fireRisk: Math.min(100, Math.round(projectedCigarettes / 30))
+            };
+        }
+
+        function showTrendModal() {
+            elements.trendModal.classList.add('active');
+            renderTrendContent();
+        }
+
+        function renderTrendContent() {
+            const tab = state.currentTrendTab;
+            const yearMap = { '1year': 1, '5years': 5, '10years': 10, '20years': 20 };
+            const years = yearMap[tab];
+            const trends = calculateTrends(years);
+            const currentHealth = state.health;
+            
+            const chartData = [
+                { label: '现在', value: state.totalCigarettes, health: currentHealth },
+                { label: `${tab === '1year' ? '1年' : tab === '5years' ? '5年' : tab === '10years' ? '10年' : '20年'}后`, value: state.totalCigarettes + trends.cigarettes, health: Math.max(0, currentHealth - trends.healthLoss) }
+            ];
+            
+            elements.trendChart.innerHTML = chartData.map((data, i) => {
+                const height = Math.max(10, (data.health / 100) * 180);
+                return `<div class="trend-bar" style="height: ${height}px; opacity: ${1 - (i * 0.3)}"><div class="trend-bar-value">${data.health}%</div><div class="trend-bar-label">${data.label}</div></div>`;
+            }).join('');
+            
+            elements.trendMetrics.innerHTML = `
+                <div class="trend-metric"><div class="trend-metric-label">吸烟量累计</div><div class="trend-metric-value">${trends.cigarettes}支</div></div>
+                <div class="trend-metric"><div class="trend-metric-label">经济支出</div><div class="trend-metric-value">¥${trends.spent}</div></div>
+                <div class="trend-metric"><div class="trend-metric-label">寿命损失</div><div class="trend-metric-value">${trends.lifeLoss}年</div></div>
+                <div class="trend-metric"><div class="trend-metric-label">肺癌风险</div><div class="trend-metric-value">${trends.cancerRisk}倍</div></div>
+            `;
+        }
+
+        function setupEventListeners() {
+            document.getElementById('startSimulation').addEventListener('click', () => {
+                const ageInput = document.getElementById('ageInput');
+                const age = parseInt(ageInput.value);
+                const ageWarning = document.getElementById('ageWarning');
+                
+                if (!age || age < 1 || age > 120) {
+                    ageInput.style.borderColor = 'var(--accent-danger)';
+                    return;
+                }
+                
+                state.age = age;
+                ageWarning.classList.toggle('show', age < 13);
+                
+                if (age >= 13) {
+                    hideWelcomeModal();
+                } else {
+                    state.initialized = true;
+                    hideWelcomeModal();
+                    elements.smokeBtn.disabled = true;
+                    showToast('info', '教育模式', '您未满13岁，已进入教育展示模式');
+                }
+            });
+
+            elements.smokeBtn.addEventListener('click', smokeCigarette);
+            
+            document.addEventListener('keydown', (e) => {
+                if (e.code === 'Space' && !e.repeat && document.activeElement.tagName !== 'INPUT') {
+                    e.preventDefault();
+                    smokeCigarette();
+                }
+            });
+
+            elements.countrySelector.addEventListener('change', (e) => {
+                state.country = e.target.value;
+                saveState();
+                renderLegalBar();
+                showToast('info', `已切换至 ${COUNTRY_LAWS[state.country].name}`, `罚款范围: ¥${COUNTRY_LAWS[state.country].fineMin}-${COUNTRY_LAWS[state.country].fineMax}`);
+            });
+
+            document.getElementById('nextDayBtn').addEventListener('click', nextDay);
+            
+            document.getElementById('resetBtn').addEventListener('click', () => {
+                if (confirm('确定要重置所有数据吗？')) {
+                    resetSimulation();
+                }
+            });
+
+            document.getElementById('quitBtn').addEventListener('click', quitSmoking);
+
+            ['Lungs', 'Heart', 'Mouth', 'Blood'].forEach(organ => {
+                document.getElementById(`organ${organ}`).addEventListener('click', () => showOrganDetail(organ.toLowerCase()));
+                document.getElementById(`organ${organ}`).addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') showOrganDetail(organ.toLowerCase());
+                });
+            });
+
+            document.querySelectorAll('.modal-close').forEach(btn => {
+                btn.addEventListener('click', () => btn.closest('.modal-overlay').classList.remove('active'));
+            });
+
+            document.getElementById('closeDiseaseModal').addEventListener('click', () => elements.diseaseModal.classList.remove('active'));
+
+            document.getElementById('restartSimulation').addEventListener('click', resetSimulation);
+            document.getElementById('quitSimulation').addEventListener('click', () => {
+                resetSimulation();
+                state.health = 100;
+            });
+
+            document.querySelectorAll('.modal-overlay').forEach(overlay => {
+                overlay.addEventListener('click', (e) => {
+                    if (e.target === overlay && !overlay.classList.contains('welcome-modal')) {
+                        overlay.classList.remove('active');
+                    }
+                });
+            });
+
+            document.getElementById('indoorBan').addEventListener('click', () => {
+                state.isIndoor = !state.isIndoor;
+                document.getElementById('indoorBan').classList.toggle('danger', state.isIndoor);
+                document.getElementById('indoorBan').classList.toggle('info', !state.isIndoor);
+                showToast('info', state.isIndoor ? '现在在室内' : '现在在室外', state.isIndoor && COUNTRY_LAWS[state.country].indoorBan ? '室内禁止吸烟！' : '');
+            });
+            
+            elements.trendBtn.addEventListener('click', showTrendModal);
+            
+            document.querySelectorAll('.trend-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.trend-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    state.currentTrendTab = tab.getAttribute('data-tab');
+                    renderTrendContent();
+                });
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', initSimulation);
+    </script>
+</body>
+</html>
